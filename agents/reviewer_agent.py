@@ -1,7 +1,7 @@
 
 import os
 from typing import Literal
-
+from utils.gemini_client import generate_with_retry
 from dotenv import load_dotenv
 from google import genai
 from pydantic import BaseModel, Field
@@ -62,7 +62,8 @@ def review_test_cases(
     """
 
     try:
-        response = client.models.generate_content(
+        response = generate_with_retry(
+            client=client,
             model=os.getenv(
                 "GEMINI_MODEL", "gemini-2.5-flash"
             ),

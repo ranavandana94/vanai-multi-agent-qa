@@ -2,6 +2,7 @@
 import os
 from dotenv import load_dotenv
 from google import genai
+from utils.gemini_client import generate_with_retry
 
 load_dotenv()
 
@@ -43,12 +44,11 @@ def analyze_requirements(user_story: str) -> str:
     """
 
     try:
-        response = client.models.generate_content(
-            model=os.getenv(
-                "GEMINI_MODEL", "gemini-2.5-flash"
-            ),
+        response = generate_with_retry(
+            client=client,
+            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             contents=prompt,
-        )
+    )
 
         if not response.text:
             raise RuntimeError("Model returned no text")

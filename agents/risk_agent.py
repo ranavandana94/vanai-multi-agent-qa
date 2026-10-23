@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from google import genai
 from pydantic import BaseModel, Field
+from utils.gemini_client import generate_with_retry
 
 
 load_dotenv()
@@ -55,7 +56,8 @@ def analyze_risks(
     """
 
     try:
-        response = client.models.generate_content(
+        response = generate_with_retry(
+            client=client,
             model=os.getenv(
                 "GEMINI_MODEL", "gemini-2.5-flash"
             ),

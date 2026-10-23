@@ -6,6 +6,7 @@ from agents.requirement_agent import analyze_requirements
 from agents.test_case_agent import generate_test_cases
 from agents.risk_agent import analyze_risks
 from agents.reviewer_agent import review_test_cases
+from agents.automation_agent import generate_automation
 
 
 def requirement_node(state: QAState) -> dict:
@@ -22,9 +23,11 @@ def test_case_node(state: QAState) -> dict:
     print("\n[Agent 2] Generating test cases...")
 
     cases = generate_test_cases(
+        
         user_story=state["user_story"],
         requirement_analysis=state["requirement_analysis"],
-        review_feedback=state.get("review_feedback", [])
+        review_feedback=state.get("review_feedback", []),
+        previous_test_cases=state.get("test_cases", ""),
     )
 
     return {
@@ -61,6 +64,7 @@ def reviewer_node(state: QAState) -> dict:
 
 
 
+
 def route_review(state: QAState) -> str:
     review = state["review_result"]
 
@@ -68,26 +72,49 @@ def route_review(state: QAState) -> str:
     decision = review.get("decision", "REVISE")
     attempts = state.get("revision_count", 0)
 
-    approved = (
-        decision == "APPROVED"
-        and score >= 85
-    )
+    issues = review.get("issues", [])
+    recommendations = review.get("recommendations", [])
 
-    if approved:
-        print(f"\nQA APPROVED: Score {score}/100")
+    print(f"\n[Reviewer] Decision: {decision}")
+    print(f"[Reviewer] Score: {score}/100")
+
+    if issues:
+        print("\n[Reviewer] Issues:")
+        for issue in issues:
+            print(f"  - {issue}")
+
+    if recommendations:
+        print("\n[Reviewer] Recommendations:")
+        for recommendation in recommendations:
+            print(f"  - {recommendation}")
+
+    if decision == "APPROVED" and score >= 85:
+        print("\nQA APPROVED")
         return "approved"
 
     if attempts >= 2:
-        print(
-            "\nQA REVIEW STOPPED: "
-            "Maximum attempts reached without approval."
-        )
+        print("\nQA REVIEW STOPPED: Maximum attempts reached.")
         return "max_revisions"
 
-    print(
-        f"\nQA REVISION REQUIRED: Score {score}/100"
-    )
+    print("\nQA REVISION REQUIRED")
     return "revise"
+
+
+
+
+
+def automation_node(state: QAState) -> dict:
+    print("\nGenerating Playwright automation...")
+
+    result = generate_automation(
+        user_story=state["user_story"],
+        test_cases=state["test_cases"]
+    )
+
+    return {
+        "automation_result": result.model_dump()
+    }
+
 
 def build_qa_graph():
     builder = StateGraph(QAState)
@@ -132,14 +159,27 @@ def build_qa_graph():
         "reviewer_agent"
     )
 
+    builder.add_node (
+        "automation_agent", 
+        automation_node
+    )
+
+    
     builder.add_conditional_edges(
         "reviewer_agent",
         route_review,
         {
-            "approved": END,
+            "approved": "automation_agent",
             "revise": "test_case_agent",
-            "max_revisions": END
-        }
+            "max_revisions": END,
+        },
+    )
+
+    # Finish the workflow after Agent 5
+    builder.add_edge(
+        "automation_agent",
+        END
     )
 
     return builder.compile()
+

@@ -1,6 +1,7 @@
 from workflow.graph import build_qa_graph
 import json
 
+
 def main():
     user_story = """
     As a registered user,
@@ -17,7 +18,8 @@ def main():
         "risk_report": {},
         "review_result": {},
         "revision_count": 0,
-        "review_feedback": []      
+        "review_feedback": [],
+        "automation_agent": {}
     }
 
     result = graph.invoke(initial_state)
@@ -31,7 +33,6 @@ def main():
     print("GENERATED TEST CASES")
     print("=" * 50)
     print(result["test_cases"])
-  
 
     print("\n" + "=" * 50)
     print("RISK ANALYSIS REPORT")
@@ -48,7 +49,7 @@ def main():
     print(
         f"\nTest case generation attempts: "
         f"{result['revision_count']}"
-    ) 
+    )
 
 
 if __name__ == "__main__":
