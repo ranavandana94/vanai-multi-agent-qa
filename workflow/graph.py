@@ -7,6 +7,7 @@ from agents.test_case_agent import generate_test_cases
 from agents.risk_agent import analyze_risks
 from agents.reviewer_agent import review_test_cases
 from agents.automation_agent import generate_automation
+from agents.automation_reviewer_agent import review_automation
 
 
 def requirement_node(state: QAState) -> dict:
@@ -115,8 +116,21 @@ def automation_node(state: QAState) -> dict:
         "automation_result": result.model_dump()
     }
 
+def automation_review_node(state: QAState) -> dict:
+    print("\n[Agent 6] Reviewing automation code...")
 
-def build_qa_graph():
+    review = review_automation(
+        user_story=state["user_story"],
+        test_cases=state["test_cases"],
+        automation_result=state["automation_result"],
+    )
+
+    return {
+        "automation_review": review.model_dump()
+    }
+
+
+def build_qa_graph(checkpointer=None):
     builder = StateGraph(QAState)
 
     builder.add_node(
@@ -175,11 +189,21 @@ def build_qa_graph():
         },
     )
 
-    # Finish the workflow after Agent 5
-    builder.add_edge(
-        "automation_agent",
-        END
+    # Finish the workflow after automation review
+    builder.add_node(
+        "automation_reviewer_agent",
+        automation_review_node,
     )
 
-    return builder.compile()
+    builder.add_edge(
+        "automation_agent",
+        "automation_reviewer_agent",
+    )
+
+    builder.add_edge(
+        "automation_reviewer_agent",
+        END,
+    )
+
+    return builder.compile(checkpointer=checkpointer)
 

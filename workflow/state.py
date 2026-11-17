@@ -11,3 +11,4 @@ class QAState(TypedDict):
     revision_count: int
     review_feedback: list[str]
     automation_result: dict
+    automation_review: dict
